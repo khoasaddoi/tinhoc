@@ -1,0 +1,2553 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aim Lab - Aim Trainer 3D</title>
+    <link rel="icon" type="JFIF" href="aimlab.jfif">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%);
+            color: #fff;
+            overflow: hidden;
+            height: 100vh;
+        }
+        
+        .main-menu {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .logo {
+            font-size: 4em;
+            font-weight: bold;
+            background: linear-gradient(45deg, #00ff88, #00aaff, #ff6b35);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 20px;
+            text-shadow: 0 0 30px rgba(0, 255, 136, 0.5);
+        }
+        
+        .level-progression {
+            position: relative;
+            width: 600px;
+            height: 400px;
+            margin: 30px 0;
+        }
+        
+        .level-grid {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 50% 50%, rgba(0, 170, 255, 0.1) 0%, transparent 70%),
+                repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 20px,
+                    rgba(0, 170, 255, 0.05) 20px,
+                    rgba(0, 170, 255, 0.05) 21px
+                ),
+                repeating-linear-gradient(
+                    90deg,
+                    transparent,
+                    transparent 20px,
+                    rgba(0, 170, 255, 0.05) 20px,
+                    rgba(0, 170, 255, 0.05) 21px
+                );
+        }
+        
+        .level-node {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            transform: translate(-50%, -50%);
+        }
+        
+        .level-node::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, #2a2a2a, #1a1a1a);
+            border: 3px solid #444;
+            border-radius: 50%;
+            transform: rotate(45deg);
+            transition: all 0.3s ease;
+        }
+        
+        .level-node.unlocked::before {
+            background: linear-gradient(45deg, #1e5bff, #0d47a1);
+            border-color: #00aaff;
+            box-shadow: 0 0 20px rgba(0, 170, 255, 0.5);
+        }
+        
+        .level-node.unlocked:hover::before {
+            background: linear-gradient(45deg, #00aaff, #1e5bff);
+            box-shadow: 0 0 30px rgba(0, 170, 255, 0.8);
+            transform: rotate(45deg) scale(1.05);
+        }
+        
+        .level-node.active::before {
+            background: linear-gradient(45deg, #00ff88, #00aaff);
+            border-color: #00ff88;
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.8);
+            animation: pulse 2s infinite;
+        }
+        
+        .level-node.completed::before {
+            background: linear-gradient(45deg, #ff6b35, #ff8c2b);
+            border-color: #ff6b35;
+            box-shadow: 0 0 25px rgba(255, 107, 53, 0.6);
+        }
+        
+        .level-node.completed:hover::before {
+            background: linear-gradient(45deg, #ff8c2b, #ffa500);
+            box-shadow: 0 0 30px rgba(255, 140, 43, 0.8);
+            transform: rotate(45deg) scale(1.05);
+        }
+        
+        .level-node.locked::before {
+            background: linear-gradient(45deg, #1a1a1a, #0a0a0a);
+            border-color: #333;
+            opacity: 0.5;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: rotate(45deg) scale(1); }
+            50% { transform: rotate(45deg) scale(1.1); }
+        }
+        
+        .level-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 24px;
+            z-index: 2;
+            color: #fff;
+            text-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
+        }
+        
+        .level-number {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background: #ff6b35;
+            color: #000;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            z-index: 3;
+        }
+        
+        .level-node.locked .level-number {
+            background: #666;
+            color: #999;
+        }
+        
+        .level-connection {
+            position: absolute;
+            height: 3px;
+            background: linear-gradient(90deg, #444, #666, #444);
+            transform-origin: left center;
+            z-index: 1;
+        }
+        
+        .level-connection.unlocked {
+            background: linear-gradient(90deg, #00aaff, #00ff88, #00aaff);
+            box-shadow: 0 0 10px rgba(0, 170, 255, 0.5);
+        }
+        
+        .level-info {
+            position: absolute;
+            bottom: -60px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: 2px solid #00aaff;
+            text-align: center;
+            min-width: 120px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+        
+        .level-node:hover .level-info {
+            opacity: 1;
+        }
+        
+        .level-name {
+            font-size: 14px;
+            font-weight: bold;
+            color: #00aaff;
+            margin-bottom: 5px;
+        }
+        
+        .level-requirement {
+            font-size: 12px;
+            color: #ccc;
+        }
+        
+        .menu-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .menu-btn {
+            background: linear-gradient(45deg, #1a1a1a, #2a2a2a);
+            border: 2px solid #00ff88;
+            color: #00ff88;
+            padding: 15px 40px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.2em;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            min-width: 200px;
+            text-align: center;
+        }
+        
+        .menu-btn:hover {
+            background: linear-gradient(45deg, #00ff88, #00aaff);
+            color: #000;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0, 255, 136, 0.3);
+        }
+        
+        .menu-btn:disabled {
+            background: #333;
+            border-color: #666;
+            color: #666;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .menu-btn.members-btn {
+            background: linear-gradient(45deg, #1a1a1a, #2a2a2a);
+            border: 2px solid #ff4444;
+            color: #ff4444;
+        }
+        
+        .menu-btn.members-btn:hover {
+            background: linear-gradient(45deg, #ff4444, #ff6666);
+            color: #000;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(255, 68, 68, 0.3);
+        }
+        
+        .game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background: radial-gradient(circle at center, #1a1a1a 0%, #0a0a0a 100%);
+            display: none;
+            cursor: none;
+        }
+        
+        .renderer-wrap {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 1;
+        }
+        
+        .game-hud {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 50;
+        }
+        
+        .top-hud {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .mode-info {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px 25px;
+            border-radius: 10px;
+            border: 2px solid #00ff88;
+        }
+        
+        .mode-name {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #00ff88;
+            margin-bottom: 5px;
+        }
+        
+        .mode-description {
+            color: #ccc;
+            font-size: 0.9em;
+        }
+        
+        .stats-panel {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px 25px;
+            border-radius: 10px;
+            border: 2px solid #00aaff;
+            text-align: center;
+        }
+        
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+            min-width: 200px;
+        }
+        
+        .stat-label {
+            color: #ccc;
+        }
+        
+        .stat-value {
+            color: #00aaff;
+            font-weight: bold;
+        }
+        
+        .timer-display {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 15px 30px;
+            border-radius: 10px;
+            border: 2px solid #ff6b35;
+            font-size: 2em;
+            font-weight: bold;
+            color: #ff6b35;
+            text-shadow: 0 0 20px rgba(255, 107, 53, 0.5);
+        }
+        
+        .crosshair {
+            position: fixed;
+            width: 20px;
+            height: 20px;
+            pointer-events: none;
+            z-index: 80;
+        }
+        
+        .crosshair::before,
+        .crosshair::after {
+            content: '';
+            position: absolute;
+            background: #00ff88;
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.8);
+        }
+        
+        .crosshair::before {
+            width: 2px;
+            height: 20px;
+            left: 9px;
+            top: 0;
+        }
+        
+        .crosshair::after {
+            width: 20px;
+            height: 2px;
+            left: 0;
+            top: 9px;
+        }
+        
+        .gun-hand-frame {
+            position: fixed;
+            bottom: 0;
+            right: 0;
+            width: 300px;
+            height: 200px;
+            background: linear-gradient(135deg, #333, #555);
+            border-radius: 15px 0 0 0;
+            border: 3px solid #666;
+            z-index: 40;
+            transition: all 0.1s ease-out;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+        }
+        
+        .gun-hand {
+            position: absolute;
+            bottom: 30px;
+            right: 50px;
+            width: 150px;
+            height: 80px;
+            background: linear-gradient(45deg, #444, #666);
+            border-radius: 8px;
+            box-shadow: 0 0 25px rgba(0, 0, 0, 0.7);
+            transition: all 0.1s ease-out;
+        }
+        
+        .gun-grip {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 40px;
+            height: 50px;
+            background: linear-gradient(45deg, #222, #444);
+            border-radius: 0 0 8px 0;
+        }
+        
+        .gun-barrel {
+            position: absolute;
+            top: 20px;
+            left: -30px;
+            width: 100px;
+            height: 10px;
+            background: linear-gradient(45deg, #555, #777);
+            border-radius: 5px;
+        }
+        
+        .gun-sight-front {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            width: 6px;
+            height: 20px;
+            background: #ff6b35;
+            border-radius: 3px;
+            box-shadow: 0 0 10px rgba(255, 107, 53, 0.8);
+        }
+        
+        .gun-sight-rear {
+            position: absolute;
+            top: 10px;
+            left: 30px;
+            width: 4px;
+            height: 15px;
+            background: #ff6b35;
+            border-radius: 2px;
+        }
+        
+        .gun-text {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            color: #ccc;
+            font-size: 0.9em;
+            font-weight: bold;
+            text-shadow: 0 0 5px rgba(0, 0, 0, 0.8);
+        }
+        
+        .hand-fingers {
+            position: absolute;
+            bottom: -5px;
+            right: 10px;
+            width: 20px;
+            height: 15px;
+            background: linear-gradient(45deg, #8b4513, #a0522d);
+            border-radius: 10px 10px 0 0;
+        }
+        
+        .hand-fingers::before {
+            content: '';
+            position: absolute;
+            top: -3px;
+            left: 5px;
+            width: 8px;
+            height: 8px;
+            background: linear-gradient(45deg, #8b4513, #a0522d);
+            border-radius: 50%;
+        }
+        
+        .hand-fingers::after {
+            content: '';
+            position: absolute;
+            top: -3px;
+            right: 5px;
+            width: 8px;
+            height: 8px;
+            background: linear-gradient(45deg, #8b4513, #a0522d);
+            border-radius: 50%;
+        }
+        
+        .muzzle-flash {
+            position: absolute;
+            top: 18px;
+            left: -40px;
+            width: 15px;
+            height: 15px;
+            background: radial-gradient(circle, #ffff00, #ff6b35, transparent);
+            border-radius: 50%;
+            opacity: 0;
+            animation: muzzleFlash 0.1s ease-out;
+        }
+        
+        @keyframes muzzleFlash {
+            0% { opacity: 0; transform: scale(0); }
+            50% { opacity: 1; transform: scale(1.5); }
+            100% { opacity: 0; transform: scale(2); }
+        }
+        
+        .recoil {
+            animation: recoil 0.1s ease-out;
+        }
+        
+        @keyframes recoil {
+            0% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-5px) rotate(-2deg); }
+            100% { transform: translateY(0) rotate(0deg); }
+        }
+        
+        .hit-effect {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            border: 3px solid #00ff88;
+            border-radius: 50%;
+            animation: hitExpand 0.3s ease-out forwards;
+            pointer-events: none;
+            z-index: 90;
+        }
+        
+        @keyframes hitExpand {
+            0% { transform: scale(0); opacity: 1; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+        
+        .game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            padding: 40px;
+            border-radius: 15px;
+            text-align: center;
+            border: 3px solid #00ff88;
+            z-index: 200;
+            min-width: 400px;
+            display: none;
+        }
+        
+        .game-over h2 {
+            color: #00ff88;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+        }
+        
+        .final-stats {
+            margin: 20px 0;
+            font-size: 1.2em;
+        }
+        
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            padding: 5px 0;
+            border-bottom: 1px solid #333;
+        }
+        
+        .stat-item:last-child {
+            border-bottom: none;
+        }
+        
+        .settings-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #00aaff;
+            z-index: 1000;
+            display: none;
+            pointer-events: auto;
+        }
+        
+        .settings-panel h3 {
+            color: #00aaff;
+            margin-bottom: 15px;
+        }
+        
+        .setting-item {
+            margin: 10px 0;
+        }
+        
+        .setting-item label {
+            display: block;
+            color: #ccc;
+            margin-bottom: 5px;
+        }
+        
+        .setting-item input,
+        .setting-item select {
+            width: 100%;
+            padding: 5px;
+            border: 1px solid #555;
+            border-radius: 4px;
+            background: #333;
+            color: white;
+        }
+        
+        .setting-item input[type="range"] {
+            width: 70%;
+            display: inline-block;
+        }
+        
+        #hitVolumeDisplay {
+            color: #00ff88;
+            font-weight: bold;
+            margin-left: 10px;
+            min-width: 40px;
+            display: inline-block;
+        }
+        
+        .leaderboard {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #ff6b35;
+            z-index: 1000;
+            display: none;
+            pointer-events: auto;
+        }
+        
+        .members-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.95);
+            padding: 40px;
+            z-index: 1000;
+            display: none;
+            pointer-events: auto;
+            backdrop-filter: blur(10px);
+            overflow-y: auto;
+        }
+        
+        .members-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 100%;
+        }
+        
+        .members-panel h2 {
+            color: #00ff88;
+            font-size: 3em;
+            text-align: center;
+            margin-bottom: 40px;
+            text-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+        }
+        
+        .teams-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .team-section {
+            padding: 30px;
+            border-radius: 15px;
+            border-left: 6px solid;
+            width: 100%;
+            min-height: 120px;
+        }
+        
+        .team-section.developer {
+            background: rgba(0, 170, 255, 0.1);
+            border-left-color: #00aaff;
+        }
+        
+        .team-section.ideator {
+            background: rgba(255, 107, 53, 0.1);
+            border-left-color: #ff6b35;
+        }
+        
+        .team-section.inactive {
+            background: rgba(102, 102, 102, 0.1);
+            border-left-color: #666;
+        }
+        
+        .role-title {
+            font-size: 1.8em;
+            font-weight: bold;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .role-title.developer {
+            color: #00aaff;
+        }
+        
+        .role-title.ideator {
+            color: #ff6b35;
+        }
+        
+        .role-title.inactive {
+            color: #666;
+        }
+        
+        .role-icon {
+            font-size: 1.2em;
+        }
+        
+        .member-list {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: flex-start;
+        }
+        
+        .member-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px 30px;
+            border-radius: 12px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+            text-align: center;
+            min-width: 150px;
+            flex: 0 0 auto;
+        }
+        
+        .member-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 255, 136, 0.2);
+        }
+        
+        .member-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .member-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #333, #555);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            color: #ccc;
+            flex-shrink: 0;
+            transition: all 0.3s ease;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            overflow: hidden;
+        }
+        
+        .member-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+        
+        .member-avatar:hover {
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: scale(1.1);
+        }
+        
+        .developer .member-avatar {
+            border-color: #00aaff;
+            box-shadow: 0 0 10px rgba(0, 170, 255, 0.3);
+        }
+        
+        .developer .member-avatar:hover {
+            border-color: #00ff88;
+            box-shadow: 0 0 15px rgba(0, 170, 255, 0.5);
+        }
+        
+        .ideator .member-avatar {
+            border-color: #ff6b35;
+            box-shadow: 0 0 10px rgba(255, 107, 53, 0.3);
+        }
+        
+        .ideator .member-avatar:hover {
+            border-color: #ff8c2b;
+            box-shadow: 0 0 15px rgba(255, 107, 53, 0.5);
+        }
+        
+        .inactive .member-avatar {
+            border-color: #666;
+            box-shadow: 0 0 5px rgba(102, 102, 102, 0.2);
+        }
+        
+        .inactive .member-avatar:hover {
+            border-color: #888;
+            box-shadow: 0 0 10px rgba(102, 102, 102, 0.3);
+        }
+        
+        /* Fallback styles when image fails to load */
+        .developer .member-avatar {
+            background: linear-gradient(45deg, #00aaff, #0088cc);
+            color: #fff;
+        }
+        
+        .ideator .member-avatar {
+            background: linear-gradient(45deg, #ff6b35, #ff8c2b);
+            color: #fff;
+        }
+        
+        .inactive .member-avatar {
+            background: linear-gradient(45deg, #666, #888);
+            color: #ccc;
+        }
+        
+        .member-name {
+            font-weight: bold;
+            font-size: 1.3em;
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            flex: 1;
+        }
+        
+        .team-stats {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(0, 255, 136, 0.05);
+            border-radius: 10px;
+            border: 1px solid rgba(0, 255, 136, 0.2);
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            text-align: center;
+        }
+        
+        .stat-item {
+            padding: 10px;
+        }
+        
+        .stat-number {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #00ff88;
+            display: block;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            color: #ccc;
+            margin-top: 5px;
+        }
+        
+        .leaderboard h3 {
+            color: #ff6b35;
+            margin-bottom: 15px;
+        }
+        
+        .leaderboard-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 8px 0;
+            padding: 8px 0;
+            border-bottom: 1px solid #333;
+            min-height: 30px;
+        }
+        
+        .leaderboard-item:last-child {
+            border-bottom: none;
+        }
+        
+        .rank {
+            color: #ffd700;
+            font-weight: bold;
+        }
+        
+        .score {
+            color: #00ff88;
+            font-weight: bold;
+        }
+        
+        .controls-hint {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #00ff88;
+            color: #ccc;
+            font-size: 0.9em;
+            max-width: 250px;
+            z-index: 60;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #333;
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff6b35, #00ff88);
+            transition: width 0.3s ease;
+        }
+        
+        /* Loading Screen Styles */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease-out;
+        }
+        
+        .loading-screen.fade-out {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .loading-logo {
+            font-size: 6em;
+            font-weight: bold;
+            background: linear-gradient(45deg, #00ff88, #00aaff, #ff6b35);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 40px;
+            text-shadow: 0 0 50px rgba(0, 255, 136, 0.5);
+            animation: logoPulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes logoPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .loading-container {
+            width: 400px;
+            text-align: center;
+        }
+        
+        .loading-text {
+            color: #fff;
+            font-size: 1.5em;
+            margin-bottom: 30px;
+            font-weight: 300;
+            letter-spacing: 2px;
+        }
+        
+        .loading-progress-container {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            position: relative;
+        }
+        
+        .loading-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff88, #00aaff, #ff6b35);
+            border-radius: 3px;
+            width: 0%;
+            transition: width 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .loading-progress-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            animation: progressShine 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes progressShine {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .loading-percentage {
+            color: #00ff88;
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 30px;
+        }
+        
+        .loading-dots {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 40px;
+        }
+        
+        .loading-dot {
+            width: 12px;
+            height: 12px;
+            background: #00ff88;
+            border-radius: 50%;
+            animation: dotPulse 1.5s ease-in-out infinite;
+        }
+        
+        .loading-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        
+        .loading-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        
+        @keyframes dotPulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.2); opacity: 1; }
+        }
+        
+        .loading-status {
+            color: #ccc;
+            font-size: 1em;
+            margin-bottom: 20px;
+            min-height: 24px;
+        }
+        
+        .loading-tips {
+            color: #666;
+            font-size: 0.9em;
+            max-width: 300px;
+            line-height: 1.4;
+            font-style: italic;
+        }
+        
+        .loading-particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+        }
+        
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: #00ff88;
+            border-radius: 50%;
+            animation: particleFloat 3s linear infinite;
+        }
+        
+        @keyframes particleFloat {
+            0% {
+                transform: translateY(100vh) translateX(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100px) translateX(50px);
+                opacity: 0;
+            }
+        }
+        
+        
+        .skip-loading-btn {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #00ff88;
+            color: #00ff88;
+            padding: 12px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            opacity: 0;
+            animation: fadeInSkip 0.5s ease-out 2s forwards;
+            backdrop-filter: blur(10px);
+        }
+        
+        .skip-loading-btn:hover {
+            background: linear-gradient(45deg, #00ff88, #00aaff);
+            color: #000;
+            transform: translateX(-50%) translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0, 255, 136, 0.3);
+        }
+        
+        .skip-loading-btn:active {
+            transform: translateX(-50%) translateY(0);
+            box-shadow: 0 5px 15px rgba(0, 255, 136, 0.2);
+        }
+        
+        .skip-loading-btn.hidden {
+            display: none;
+        }
+        
+        @keyframes fadeInSkip {
+            from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+        
+    </style>
+    <!-- Three.js CDN -->
+    <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+    <script src="https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js" type="module"></script>
+    
+    <!-- Hit Sound Effect -->
+    <audio id="hitSound" preload="auto">
+        <source src="music.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+</head>
+<body>
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loading-particles" id="loadingParticles"></div>
+        
+        <div class="loading-logo">AIM LAB 3D</div>
+        
+        <div class="loading-container">
+            <div class="loading-text">LOADING</div>
+            
+            <div class="loading-progress-container">
+                <div class="loading-progress-bar" id="loadingProgressBar"></div>
+            </div>
+            
+            <div class="loading-percentage" id="loadingPercentage">0%</div>
+            
+            <div class="loading-dots">
+                <div class="loading-dot"></div>
+                <div class="loading-dot"></div>
+                <div class="loading-dot"></div>
+            </div>
+            
+            <div class="loading-status" id="loadingStatus">Initializing game engine...</div>
+            
+            <div class="loading-tips" id="loadingTips">
+                "Precision is the key to victory. Every shot counts."
+            </div>
+        </div>
+        
+        
+        <button class="skip-loading-btn" id="skipLoadingBtn" onclick="skipLoading()">
+            BỎ QUA
+        </button>
+    </div>
+    
+    <div class="main-menu" id="mainMenu">
+        <div class="logo">AIM LAB 3D</div>
+        <div class="level-progression" id="levelProgression">
+            <div class="level-grid" id="levelGrid">
+                <!-- Level nodes will be generated by JavaScript -->
+            </div>
+        </div>
+        <div class="menu-buttons">
+            <button class="menu-btn" onclick="showSettings()">Settings</button>
+            <button class="menu-btn" onclick="showLeaderboard()">Leaderboard</button>
+            <button class="menu-btn members-btn" onclick="showMembers()">Members</button>
+        </div>
+    </div>
+    
+    <div class="game-container" id="gameContainer">
+        <div class="renderer-wrap" id="rendererWrap"></div>
+        <div class="crosshair" id="crosshair"></div>
+        
+        <div class="gun-hand-frame" id="gunHandFrame">
+            <div class="gun-hand" id="gunHand">
+                <div class="gun-text">SOLATEC</div>
+                <div class="gun-grip"></div>
+                <div class="gun-barrel"></div>
+                <div class="gun-sight-front"></div>
+                <div class="gun-sight-rear"></div>
+                <div class="hand-fingers"></div>
+                <div class="muzzle-flash" id="muzzleFlash"></div>
+            </div>
+        </div>
+        
+        <div class="game-hud">
+            <div class="top-hud">
+                <div class="mode-info">
+                    <div class="mode-name" id="modeName">Level 1</div>
+                    <div class="mode-description" id="modeDescription">Complete the training</div>
+                </div>
+                
+                <div class="stats-panel">
+                    <div class="stat-row">
+                        <span class="stat-label">Score:</span>
+                        <span class="stat-value" id="score">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Accuracy:</span>
+                        <span class="stat-value" id="accuracy">0%</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Targets Hit:</span>
+                        <span class="stat-value" id="targetsHit">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Avg Time:</span>
+                        <span class="stat-value" id="avgTime">0ms</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="timer-display" id="timer">00:30</div>
+            
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+        
+        <div class="controls-hint">
+            <div><strong>Điều khiển:</strong></div>
+            <div>• Click vào mục tiêu 3D để bắn</div>
+            <div>• ESC: Thoát về menu</div>
+            <div>• R: Chơi lại</div>
+            <div>• S: Cài đặt</div>
+            <div>• Di chuyển chuột để ngắm bắn</div>
+        </div>
+    </div>
+    
+    <div class="settings-panel" id="settingsPanel">
+        <h3>Settings</h3>
+        <div class="setting-item">
+            <label>Crosshair Color:</label>
+            <select id="crosshairColor">
+                <option value="#00ff88">Green</option>
+                <option value="#00aaff">Blue</option>
+                <option value="#ff6b35">Orange</option>
+                <option value="#ff0000">Red</option>
+            </select>
+        </div>
+        <div class="setting-item">
+            <label>Target Size:</label>
+            <select id="targetSize">
+                <option value="normal">Normal</option>
+                <option value="large">Large</option>
+                <option value="small">Small</option>
+            </select>
+        </div>
+        <div class="setting-item">
+            <label>Game Duration (seconds):</label>
+            <input type="number" id="gameDuration" value="30" min="10" max="120">
+        </div>
+        <div class="setting-item">
+            <label>Sound Effects:</label>
+            <input type="checkbox" id="soundEffects" checked>
+        </div>
+        <div class="setting-item">
+            <label>Hit Sound Volume:</label>
+            <input type="range" id="hitSoundVolume" min="0" max="100" value="70">
+            <span id="hitVolumeDisplay">70%</span>
+        </div>
+        <button class="menu-btn" onclick="hideSettings()" style="margin-top: 15px;">Close</button>
+    </div>
+    
+    <div class="leaderboard" id="leaderboard">
+        <h3>Leaderboard</h3>
+        <div id="leaderboardContent"></div>
+        <button class="menu-btn" onclick="hideLeaderboard()" style="margin-top: 15px;">Close</button>
+    </div>
+    
+    <div class="members-panel" id="membersPanel">
+        <div class="members-content">
+            <h2>🎮 TEAM MEMBERS</h2>
+            
+            <div class="teams-container">
+            <div class="team-section developer">
+                <div class="role-title developer">
+                    <span class="role-icon">💻</span>
+                    <span>DEVELOPER</span>
+                </div>
+                <div class="member-list">
+                    <div class="member-card">
+                        <div class="member-info">
+                            <div class="member-avatar">
+                                <img src="khoa.jpg" alt="Khoa" onerror="this.style.display='none'; this.parentElement.textContent='K';">
+                            </div>
+                            <div class="member-name">KHOA</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="team-section ideator">
+                <div class="role-title ideator">
+                    <span class="role-icon">💡</span>
+                    <span>IDEA CONTRIBUTORS</span>
+                </div>
+                <div class="member-list">
+                    <div class="member-card">
+                        <div class="member-info">
+                            <div class="member-avatar">
+                                <img src="kiet.jpg" alt="Kiet" onerror="this.style.display='none'; this.parentElement.textContent='K';">
+                            </div>
+                            <div class="member-name">KIET</div>
+                        </div>
+                    </div>
+                    <div class="member-card">
+                        <div class="member-info">
+                            <div class="member-avatar">
+                                <img src="hung.jpg" alt="Hung" onerror="this.style.display='none'; this.parentElement.textContent='H';">
+                            </div>
+                            <div class="member-name">HUNG</div>
+                        </div>
+                    </div>
+                    <div class="member-card">
+                        <div class="member-info">
+                            <div class="member-avatar">
+                                <img src="tri.jpg" alt="Tri" onerror="this.style.display='none'; this.parentElement.textContent='T';">
+                            </div>
+                            <div class="member-name">TRI</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="team-section inactive">
+                <div class="role-title inactive">
+                    <span class="role-icon">😴</span>
+                    <span>INACTIVE MEMBERS</span>
+                </div>
+                <div class="member-list">
+                    <div class="member-card">
+                        <div class="member-info">
+                            <div class="member-avatar">H</div>
+                            <div class="member-name">HOANG</div>
+                        </div>
+                    </div>
+                    <div class="member-card">
+                        <div class="member-info">
+                            <div class="member-avatar">V</div>
+                            <div class="member-name">VIET</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+            <div class="team-stats">
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <span class="stat-number">1</span>
+                        <div class="stat-label">Developer</div>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">3</span>
+                        <div class="stat-label">Idea Contributors</div>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">2</span>
+                        <div class="stat-label">Inactive Members</div>
+                    </div>
+                </div>
+            </div>
+            
+            <button class="menu-btn" onclick="hideMembers()" style="margin-top: 30px; width: 100%; max-width: 300px; margin-left: auto; margin-right: auto; display: block;">Close</button>
+        </div>
+    </div>
+    
+    <div class="game-over" id="gameOver">
+        <h2>Level Complete!</h2>
+        <div class="final-stats">
+            <div class="stat-item">
+                <span>Final Score:</span>
+                <span id="finalScore">0</span>
+            </div>
+            <div class="stat-item">
+                <span>Accuracy:</span>
+                <span id="finalAccuracy">0%</span>
+            </div>
+            <div class="stat-item">
+                <span>Targets Hit:</span>
+                <span id="finalTargetsHit">0</span>
+            </div>
+            <div class="stat-item">
+                <span>Average Time:</span>
+                <span id="finalAvgTime">0ms</span>
+            </div>
+            <div class="stat-item">
+                <span>Best Streak:</span>
+                <span id="finalStreak">0</span>
+            </div>
+        </div>
+        <button class="menu-btn" onclick="restartGame()">Play Again</button>
+        <button class="menu-btn" onclick="backToMenu()">Main Menu</button>
+    </div>
+    
+    <script>
+        const THREE_VERSION = '0.160.0';
+        let renderer, scene, camera, raycaster, clickVector, clock;
+        let gameLoopHandle = null;
+        let targets = [];
+        let spawnIntervalHandle = null;
+        let resizeObserver = null;
+        
+        // Level progression system
+        const levels = [
+            {
+                id: 1,
+                name: "Basic Training",
+                description: "Learn the fundamentals",
+                icon: "🎯",
+                requirement: 0,
+                position: { x: 50, y: 20 },
+                mode: 'gridshot',
+                difficulty: 1
+            },
+            {
+                id: 2,
+                name: "Precision Shot",
+                description: "Hit small targets",
+                icon: "🎯",
+                requirement: 100,
+                position: { x: 30, y: 50 },
+                mode: 'microshot',
+                difficulty: 2
+            },
+            {
+                id: 3,
+                name: "Moving Targets",
+                description: "Track and hit moving objects",
+                icon: "🕷️",
+                requirement: 250,
+                position: { x: 70, y: 50 },
+                mode: 'spidershot',
+                difficulty: 2
+            },
+            {
+                id: 4,
+                name: "Multi-Target",
+                description: "Handle multiple targets",
+                icon: "💀",
+                requirement: 500,
+                position: { x: 50, y: 80 },
+                mode: 'multishot',
+                difficulty: 3
+            },
+            {
+                id: 5,
+                name: "Master Challenge",
+                description: "Ultimate test of skill",
+                icon: "⭐",
+                requirement: 1000,
+                position: { x: 20, y: 80 },
+                mode: 'gridshot',
+                difficulty: 4
+            }
+        ];
+        
+        let gameState = {
+            isPlaying: false,
+            currentLevel: 1,
+            score: 0,
+            timeLeft: 30,
+            targetsHit: 0,
+            targetsMissed: 0,
+            hitTimes: [],
+            currentStreak: 0,
+            bestStreak: 0,
+            gameTimer: null,
+            unlockedLevels: [1], // Level 1 starts unlocked
+            completedLevels: [],
+            settings: {
+                crosshairColor: '#00ff88',
+                targetSize: 'normal',
+                gameDuration: 30,
+                soundEffects: true,
+                hitSoundVolume: 70
+            }
+        };
+        
+        const gameModes = {
+            gridshot: {
+                name: 'Gridshot',
+                description: 'Click all 3D targets as fast as possible',
+                baseRadius: 0.6,
+                spawnCount: 6,
+                spawnTime: 2000,
+                points: 10,
+                move: false
+            },
+            spidershot: {
+                name: 'Spidershot',
+                description: 'Hit small moving targets',
+                baseRadius: 0.4,
+                spawnCount: 8,
+                spawnTime: 1500,
+                points: 15,
+                move: true
+            },
+            microshot: {
+                name: 'Microshot',
+                description: 'Precision with tiny targets',
+                baseRadius: 0.25,
+                spawnCount: 10,
+                spawnTime: 1000,
+                points: 20,
+                move: false
+            },
+            multishot: {
+                name: 'Multishot',
+                description: 'Multiple targets at once',
+                baseRadius: 0.5,
+                spawnCount: 5,
+                spawnTime: 3000,
+                points: 25,
+                move: true
+            }
+        };
+        
+        const targetMaterials = {
+            base: new THREE.MeshStandardMaterial({ color: 0x1e5bff, emissive: 0x061133, metalness: 0.15, roughness: 0.35 }),
+            core: new THREE.MeshStandardMaterial({ color: 0xff8c2b, emissive: 0x602100, metalness: 0.1, roughness: 0.3 })
+        };
+        
+        function initLevelProgression() {
+            const levelGrid = document.getElementById('levelGrid');
+            levelGrid.innerHTML = '';
+            
+            levels.forEach((level, index) => {
+                const levelNode = document.createElement('div');
+                levelNode.className = 'level-node';
+                levelNode.style.left = level.position.x + '%';
+                levelNode.style.top = level.position.y + '%';
+                
+                // Determine level state
+                const isUnlocked = gameState.unlockedLevels.includes(level.id);
+                const isCompleted = gameState.completedLevels.includes(level.id);
+                const isActive = gameState.currentLevel === level.id;
+                
+                if (isActive) {
+                    levelNode.classList.add('active');
+                } else if (isCompleted) {
+                    levelNode.classList.add('completed');
+                } else if (isUnlocked) {
+                    levelNode.classList.add('unlocked');
+                } else {
+                    levelNode.classList.add('locked');
+                }
+                
+                let statusText = '';
+                if (isCompleted) {
+                    statusText = '✓ Hoàn thành - Click để chơi lại';
+                } else if (isUnlocked) {
+                    statusText = 'Mở khóa - Click để chơi';
+                } else {
+                    statusText = 'Bị khóa';
+                }
+                
+                levelNode.innerHTML = `
+                    <div class="level-icon">${level.icon}</div>
+                    <div class="level-number">${level.id}</div>
+                    <div class="level-info">
+                        <div class="level-name">${level.name}</div>
+                        <div class="level-requirement">${level.requirement} pts</div>
+                        <div class="level-status" style="font-size: 10px; color: #aaa; margin-top: 3px;">${statusText}</div>
+                    </div>
+                `;
+                
+                // Add click handler
+                levelNode.addEventListener('click', () => {
+                    if (isUnlocked) {
+                        startLevel(level.id);
+                    }
+                });
+                
+                levelGrid.appendChild(levelNode);
+                
+                // Add connections between levels
+                if (index > 0) {
+                    const prevLevel = levels[index - 1];
+                    const connection = document.createElement('div');
+                    connection.className = 'level-connection';
+                    
+                    const x1 = prevLevel.position.x;
+                    const y1 = prevLevel.position.y;
+                    const x2 = level.position.x;
+                    const y2 = level.position.y;
+                    
+                    const length = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+                    const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+                    
+                    connection.style.width = length + '%';
+                    connection.style.left = x1 + '%';
+                    connection.style.top = y1 + '%';
+                    connection.style.transform = `rotate(${angle}deg)`;
+                    
+                    if (isUnlocked) {
+                        connection.classList.add('unlocked');
+                    }
+                    
+                    levelGrid.appendChild(connection);
+                }
+            });
+        }
+        
+        function startLevel(levelId) {
+            const level = levels.find(l => l.id === levelId);
+            if (!level) return;
+            
+            gameState.currentLevel = levelId;
+            gameState.isPlaying = true;
+            gameState.score = 0;
+            gameState.timeLeft = gameState.settings.gameDuration;
+            gameState.targetsHit = 0;
+            gameState.targetsMissed = 0;
+            gameState.hitTimes = [];
+            gameState.currentStreak = 0;
+            gameState.bestStreak = 0;
+            
+            // Khởi tạo lại spawn grid cho level mới
+            initSpawnGrid();
+            
+            document.getElementById('mainMenu').style.display = 'none';
+            document.getElementById('gameContainer').style.display = 'block';
+            document.getElementById('gameOver').style.display = 'none';
+            
+            initThree();
+            updateModeInfo();
+            updateUI();
+            spawnTargetsLoop();
+            startTimer();
+            startGameLoop();
+        }
+        
+        function checkLevelCompletion() {
+            const level = levels.find(l => l.id === gameState.currentLevel);
+            if (!level) return;
+            
+            if (gameState.score >= level.requirement) {
+                // Level completed!
+                if (!gameState.completedLevels.includes(level.id)) {
+                    gameState.completedLevels.push(level.id);
+                }
+                
+                // Unlock next level
+                const nextLevel = levels.find(l => l.id === level.id + 1);
+                if (nextLevel && !gameState.unlockedLevels.includes(nextLevel.id)) {
+                    gameState.unlockedLevels.push(nextLevel.id);
+                }
+                
+                // Save progress
+                localStorage.setItem('aimLabProgress', JSON.stringify({
+                    unlockedLevels: gameState.unlockedLevels,
+                    completedLevels: gameState.completedLevels,
+                    currentLevel: gameState.currentLevel
+                }));
+            }
+        }
+        
+        function initThree() {
+            const wrap = document.getElementById('rendererWrap');
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0a0a0f);
+            scene.fog = new THREE.Fog(0x0a0a0f, 12, 28);
+            
+            const aspect = wrap.clientWidth / wrap.clientHeight;
+            camera = new THREE.PerspectiveCamera(60, aspect, 0.1, 100);
+            camera.position.set(0, 0, 8);
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(wrap.clientWidth, wrap.clientHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            wrap.innerHTML = '';
+            wrap.appendChild(renderer.domElement);
+            
+            const ambient = new THREE.AmbientLight(0xffffff, 0.25);
+            scene.add(ambient);
+            const keyLight = new THREE.DirectionalLight(0xffffff, 0.9);
+            keyLight.position.set(5, 6, 8);
+            scene.add(keyLight);
+            const rimLight = new THREE.PointLight(0xff6b35, 0.7, 40);
+            rimLight.position.set(-6, -2, 6);
+            scene.add(rimLight);
+
+            buildArena();
+            
+            raycaster = new THREE.Raycaster();
+            clickVector = new THREE.Vector2();
+            clock = new THREE.Clock();
+            
+            if (resizeObserver) resizeObserver.disconnect();
+            resizeObserver = new ResizeObserver(() => onResize());
+            resizeObserver.observe(wrap);
+        }
+
+        function buildArena() {
+            // Floor with subtle grid
+            const floorMat = new THREE.MeshStandardMaterial({ color: 0x121316, metalness: 0.2, roughness: 0.85 });
+            const floor = new THREE.Mesh(new THREE.PlaneGeometry(26, 16), floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.position.y = -3.5;
+            scene.add(floor);
+            const grid = new THREE.GridHelper(26, 26, 0x30343b, 0x1a1e24);
+            grid.position.y = -3.499;
+            scene.add(grid);
+
+            // Back wall panels
+            const wallMat = new THREE.MeshStandardMaterial({ color: 0x0f1116, metalness: 0.15, roughness: 0.85 });
+            const back = new THREE.Mesh(new THREE.PlaneGeometry(26, 12), wallMat);
+            back.position.set(0, 0, -6);
+            scene.add(back);
+
+            // Side walls
+            const sideL = new THREE.Mesh(new THREE.PlaneGeometry(12, 12), wallMat);
+            sideL.rotation.y = Math.PI / 2;
+            sideL.position.set(-13, 0, 0);
+            scene.add(sideL);
+            const sideR = new THREE.Mesh(new THREE.PlaneGeometry(12, 12), wallMat);
+            sideR.rotation.y = -Math.PI / 2;
+            sideR.position.set(13, 0, 0);
+            scene.add(sideR);
+
+            // Ceiling
+            const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(26, 16), new THREE.MeshStandardMaterial({ color: 0x14161b, metalness: 0.1, roughness: 0.9 }));
+            ceiling.rotation.x = Math.PI / 2;
+            ceiling.position.y = 4.5;
+            scene.add(ceiling);
+
+            // Rails near ceiling (front-to-back)
+            const railMat = new THREE.MeshStandardMaterial({ color: 0x20242c, metalness: 0.5, roughness: 0.5 });
+            for (let i = -10; i <= 10; i += 5) {
+                const rail = new THREE.Mesh(new THREE.BoxGeometry(26, 0.1, 0.1), railMat);
+                rail.position.set(0, 4.2, i * 0.3);
+                scene.add(rail);
+            }
+
+            // Orange emissive strips on side walls near floor
+            const emissiveMat = new THREE.MeshStandardMaterial({ color: 0x222222, emissive: 0xff6b35, emissiveIntensity: 1.4, roughness: 0.6, metalness: 0.0 });
+            const stripL = new THREE.Mesh(new THREE.BoxGeometry(8, 0.15, 0.2), emissiveMat);
+            stripL.position.set(-12.9, -2.8, -4);
+            stripL.rotation.y = Math.PI / 2;
+            scene.add(stripL);
+            const stripR = stripL.clone();
+            stripR.position.set(12.9, -2.8, -4);
+            stripR.rotation.y = -Math.PI / 2;
+            scene.add(stripR);
+
+            // Pipes along back wall
+            const pipeMat = new THREE.MeshStandardMaterial({ color: 0x2a2f38, metalness: 0.6, roughness: 0.4 });
+            const pipe1 = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 10, 16), pipeMat);
+            pipe1.rotation.z = Math.PI / 2;
+            pipe1.position.set(0, 2.5, -5.9);
+            scene.add(pipe1);
+            const pipe2 = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 6, 16), pipeMat);
+            pipe2.rotation.z = Math.PI / 2;
+            pipe2.position.set(-6, 1.2, -5.9);
+            scene.add(pipe2);
+
+            // Small orange lamps
+            const lampLightL = new THREE.PointLight(0xff6b35, 0.6, 8);
+            lampLightL.position.set(-9, -2.6, -4.2);
+            scene.add(lampLightL);
+            const lampLightR = lampLightL.clone();
+            lampLightR.position.x = 9;
+            scene.add(lampLightR);
+        }
+        
+        function onResize() {
+            if (!renderer || !camera) return;
+            const wrap = document.getElementById('rendererWrap');
+            camera.aspect = Math.max(1e-6, wrap.clientWidth / Math.max(1, wrap.clientHeight));
+            camera.updateProjectionMatrix();
+            renderer.setSize(wrap.clientWidth, wrap.clientHeight);
+        }
+        
+        function updateModeInfo() {
+            const level = levels.find(l => l.id === gameState.currentLevel);
+            if (level) {
+                document.getElementById('modeName').textContent = level.name;
+                document.getElementById('modeDescription').textContent = level.description;
+            }
+        }
+        
+        function updateUI() {
+            document.getElementById('score').textContent = gameState.score;
+            const totalShots = gameState.targetsHit + gameState.targetsMissed;
+            const accuracy = totalShots > 0 ? Math.round((gameState.targetsHit / totalShots) * 100) : 0;
+            document.getElementById('accuracy').textContent = accuracy + '%';
+            document.getElementById('targetsHit').textContent = gameState.targetsHit;
+            const avgTime = gameState.hitTimes.length > 0 ? 
+                Math.round(gameState.hitTimes.reduce((a, b) => a + b, 0) / gameState.hitTimes.length) : 0;
+            document.getElementById('avgTime').textContent = avgTime + 'ms';
+            const minutes = Math.floor(gameState.timeLeft / 60);
+            const seconds = gameState.timeLeft % 60;
+            document.getElementById('timer').textContent = 
+                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            const progress = ((gameState.settings.gameDuration - gameState.timeLeft) / gameState.settings.gameDuration) * 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+        }
+        
+        function startTimer() {
+            clearInterval(gameState.gameTimer);
+            gameState.gameTimer = setInterval(() => {
+                gameState.timeLeft--;
+                updateUI();
+                if (gameState.timeLeft <= 0) {
+                    endGame();
+                }
+            }, 1000);
+        }
+        
+        function sphereRadiusForSettings(base) {
+            const sizeSetting = gameState.settings.targetSize;
+            if (sizeSetting === 'large') return base * 1.4;
+            if (sizeSetting === 'small') return base * 0.7;
+            return base;
+        }
+        
+        // Hệ thống grid để đảm bảo phân bố đều các mục tiêu
+        let spawnGrid = [];
+        
+        function initSpawnGrid() {
+            spawnGrid = [];
+            const gridSizeX = 5; // 5 cột
+            const gridSizeY = 3; // 3 hàng  
+            const gridSizeZ = 3; // 3 lớp depth
+            
+            for (let x = 0; x < gridSizeX; x++) {
+                for (let y = 0; y < gridSizeY; y++) {
+                    for (let z = 0; z < gridSizeZ; z++) {
+                        const worldX = (x - gridSizeX/2 + 0.5) * 2; // -4 đến 4
+                        const worldY = (y - gridSizeY/2 + 0.5) * 2; // -2 đến 2  
+                        const worldZ = -3.5 + z * 1; // -3.5, -2.5, -1.5
+                        
+                        spawnGrid.push({
+                            position: new THREE.Vector3(worldX, worldY, worldZ),
+                            occupied: false,
+                            lastUsed: 0
+                        });
+                    }
+                }
+            }
+        }
+        
+        function randomSpawnPosition() {
+            const maxAttempts = 50;
+            const minDistance = 2.0; // Giảm khoảng cách tối thiểu xuống 2.0
+            const currentTime = performance.now();
+            
+            // Khởi tạo grid nếu chưa có
+            if (spawnGrid.length === 0) {
+                initSpawnGrid();
+            }
+            
+            // Phương pháp 1: Thử tìm vị trí từ grid trống
+            const availableGrids = spawnGrid.filter(grid => 
+                !grid.occupied && 
+                (currentTime - grid.lastUsed) > 2000 // Không sử dụng grid trong 2 giây gần đây
+            );
+            
+            if (availableGrids.length > 0) {
+                // Chọn ngẫu nhiên một grid trống và thêm một chút biến động
+                const selectedGrid = availableGrids[Math.floor(Math.random() * availableGrids.length)];
+                const basePos = selectedGrid.position.clone();
+                
+                // Thêm biến động ngẫu nhiên nhỏ để không quá cứng nhắc
+                basePos.x += (Math.random() - 0.5) * 0.8;
+                basePos.y += (Math.random() - 0.5) * 0.8;
+                basePos.z += (Math.random() - 0.5) * 0.5;
+                
+                // Kiểm tra khoảng cách với targets hiện có
+                let tooClose = false;
+                for (const target of targets) {
+                    if (basePos.distanceTo(target.position) < minDistance) {
+                        tooClose = true;
+                        break;
+                    }
+                }
+                
+                if (!tooClose) {
+                    selectedGrid.occupied = true;
+                    selectedGrid.lastUsed = currentTime;
+                    
+                    // Tự động giải phóng grid sau 3 giây
+                    setTimeout(() => {
+                        selectedGrid.occupied = false;
+                    }, 3000);
+                    
+                    return basePos;
+                }
+            }
+            
+            // Phương pháp 2: Fallback - tìm vị trí ngẫu nhiên với kiểm tra khoảng cách
+            for (let attempt = 0; attempt < maxAttempts; attempt++) {
+            const x = (Math.random() - 0.5) * 10;  // -5..5
+            const y = (Math.random() - 0.5) * 6;   // -3..3
+            const z = -3.5 + Math.random() * 3.0;  // -3.5 .. -0.5
+                const newPosition = new THREE.Vector3(x, y, z);
+                
+                let tooClose = false;
+                for (const target of targets) {
+                    if (newPosition.distanceTo(target.position) < minDistance) {
+                        tooClose = true;
+                        break;
+                    }
+                }
+                
+                if (!tooClose) {
+                    return newPosition;
+                }
+            }
+            
+            // Phương pháp 3: Cuối cùng - trả về vị trí hoàn toàn ngẫu nhiên
+            const x = (Math.random() - 0.5) * 10;
+            const y = (Math.random() - 0.5) * 6;
+            const z = -3.5 + Math.random() * 3.0;
+            return new THREE.Vector3(x, y, z);
+        }
+        
+        function spawnTarget() {
+            const level = levels.find(l => l.id === gameState.currentLevel);
+            const mode = gameModes[level.mode];
+            const radius = sphereRadiusForSettings(mode.baseRadius);
+            const geom = new THREE.SphereGeometry(radius, 32, 32);
+            const bodyMat = targetMaterials.base.clone();
+            const body = new THREE.Mesh(geom, bodyMat);
+            const core = new THREE.Mesh(new THREE.SphereGeometry(radius * 0.18, 16, 16), targetMaterials.core.clone());
+            const group = new THREE.Group();
+            group.add(body);
+            group.add(core);
+            group.position.copy(randomSpawnPosition());
+            group.userData = {
+                spawnAt: performance.now(),
+                points: mode.points,
+                move: mode.move,
+                velocity: new THREE.Vector3(
+                    (Math.random() - 0.5) * 1.2,
+                    (Math.random() - 0.5) * 1.0,
+                    (Math.random() - 0.5) * 0.4
+                ),
+                ttl: mode.spawnTime * 2
+            };
+            scene.add(group);
+            targets.push(group);
+        }
+        
+        function spawnTargetsLoop() {
+            const level = levels.find(l => l.id === gameState.currentLevel);
+            const mode = gameModes[level.mode];
+            clearInterval(spawnIntervalHandle);
+            targets.forEach(t => scene.remove(t));
+            targets = [];
+            
+            // Spawn initial targets với delay để tránh đè lên nhau
+            for (let i = 0; i < mode.spawnCount; i++) {
+                setTimeout(() => {
+                    if (gameState.isPlaying) {
+                        spawnTarget();
+            }
+                }, i * 200); // Delay 200ms giữa mỗi target để đảm bảo không spawn cùng lúc
+            }
+            
+            spawnIntervalHandle = setInterval(() => {
+                if (!gameState.isPlaying) return;
+                
+                // Chỉ spawn target mới nếu số lượng hiện tại ít hơn số lượng tối đa
+                const currentTargetCount = targets.length;
+                const maxTargets = Math.min(mode.spawnCount, 8); // Giới hạn tối đa 8 targets cùng lúc
+                
+                if (currentTargetCount < maxTargets) {
+                    const targetsToSpawn = Math.min(mode.spawnCount, maxTargets - currentTargetCount);
+                    for (let i = 0; i < targetsToSpawn; i++) {
+                        setTimeout(() => {
+                            if (gameState.isPlaying && targets.length < maxTargets) {
+                                spawnTarget();
+                            }
+                        }, i * 150); // Delay nhỏ hơn cho việc spawn trong game
+                    }
+                }
+            }, mode.spawnTime);
+        }
+        
+        function removeTarget(mesh, missed = false) {
+            const idx = targets.indexOf(mesh);
+            if (idx !== -1) targets.splice(idx, 1);
+            scene.remove(mesh);
+            if (missed) {
+                gameState.targetsMissed++;
+                gameState.currentStreak = 0;
+                updateUI();
+            }
+        }
+        
+        function resolveTargetGroup(object3D) {
+            let node = object3D;
+            while (node && !node.userData?.spawnAt) {
+                node = node.parent;
+            }
+            return node || null;
+        }
+
+        function processHit(object3D) {
+            if (!gameState.isPlaying) return;
+            const targetGroup = resolveTargetGroup(object3D);
+            if (!targetGroup) return;
+            const now = performance.now();
+            const timeSinceSpawn = now - (targetGroup.userData.spawnAt || now);
+            gameState.hitTimes.push(timeSinceSpawn);
+            gameState.targetsHit++;
+            gameState.currentStreak++;
+            gameState.bestStreak = Math.max(gameState.bestStreak, gameState.currentStreak);
+            gameState.score += targetGroup.userData.points || 10;
+            
+            showGunEffects();
+            playHitSound();
+            createHitEffectScreen(targetGroup.position);
+            removeTarget(targetGroup, false);
+            updateUI();
+            checkLevelCompletion();
+        }
+        
+        function startGameLoop() {
+            cancelAnimationFrame(gameLoopHandle);
+            const loop = () => {
+                const dt = clock.getDelta();
+                updateCrosshairPosition();
+                updateGunPosition();
+                updateTargets(dt);
+                renderer.render(scene, camera);
+                gameLoopHandle = requestAnimationFrame(loop);
+            };
+            gameLoopHandle = requestAnimationFrame(loop);
+        }
+        
+        function updateTargets(dt) {
+            const wrap = document.getElementById('rendererWrap');
+            const now = performance.now();
+            for (let i = targets.length - 1; i >= 0; i--) {
+                const t = targets[i];
+                const ud = t.userData;
+                if (ud.move) {
+                    t.position.addScaledVector(ud.velocity, dt);
+                    if (Math.abs(t.position.x) > 7) ud.velocity.x *= -1;
+                    if (Math.abs(t.position.y) > 4) ud.velocity.y *= -1;
+                    if (t.position.z < -4 || t.position.z > 2) ud.velocity.z *= -1;
+                }
+                if (now - ud.spawnAt > ud.ttl) {
+                    removeTarget(t, true);
+                }
+            }
+        }
+        
+        function createHitEffectScreen(worldPosition) {
+            const proj = worldPosition.clone().project(camera);
+            const wrap = document.getElementById('rendererWrap');
+            const x = (proj.x * 0.5 + 0.5) * wrap.clientWidth;
+            const y = ( -proj.y * 0.5 + 0.5) * wrap.clientHeight;
+            const effect = document.createElement('div');
+            effect.className = 'hit-effect';
+            effect.style.left = (x - 50) + 'px';
+            effect.style.top = (y - 50) + 'px';
+            effect.style.position = 'absolute';
+            effect.style.zIndex = '90';
+            document.getElementById('gameContainer').appendChild(effect);
+            setTimeout(() => effect.remove(), 300);
+        }
+        
+        function endGame() {
+            gameState.isPlaying = false;
+            clearInterval(gameState.gameTimer);
+            clearInterval(spawnIntervalHandle);
+            cancelAnimationFrame(gameLoopHandle);
+            
+            targets.forEach(t => scene.remove(t));
+            targets = [];
+            
+            const totalShots = gameState.targetsHit + gameState.targetsMissed;
+            const accuracy = totalShots > 0 ? Math.round((gameState.targetsHit / totalShots) * 100) : 0;
+            const avgTime = gameState.hitTimes.length > 0 ? 
+                Math.round(gameState.hitTimes.reduce((a, b) => a + b, 0) / gameState.hitTimes.length) : 0;
+            
+            document.getElementById('finalScore').textContent = gameState.score;
+            document.getElementById('finalAccuracy').textContent = accuracy + '%';
+            document.getElementById('finalTargetsHit').textContent = gameState.targetsHit;
+            document.getElementById('finalAvgTime').textContent = avgTime + 'ms';
+            document.getElementById('finalStreak').textContent = gameState.bestStreak;
+            document.getElementById('gameOver').style.display = 'block';
+            saveScore(gameState.score);
+        }
+        
+        function restartGame() {
+            startLevel(gameState.currentLevel);
+        }
+        
+        function backToMenu() {
+            gameState.isPlaying = false;
+            clearInterval(gameState.gameTimer);
+            clearInterval(spawnIntervalHandle);
+            cancelAnimationFrame(gameLoopHandle);
+            document.getElementById('mainMenu').style.display = 'flex';
+            document.getElementById('gameContainer').style.display = 'none';
+            document.getElementById('gameOver').style.display = 'none';
+            initLevelProgression(); // Refresh level progression
+        }
+        
+        function showSettings() {
+            document.getElementById('settingsPanel').style.display = 'block';
+            document.getElementById('leaderboard').style.display = 'none';
+        }
+        
+        function hideSettings() {
+            document.getElementById('settingsPanel').style.display = 'none';
+        }
+        
+        function showLeaderboard() {
+            document.getElementById('leaderboard').style.display = 'block';
+            document.getElementById('settingsPanel').style.display = 'none';
+            updateLeaderboard();
+        }
+        
+        function hideLeaderboard() {
+            document.getElementById('leaderboard').style.display = 'none';
+        }
+        
+        function showMembers() {
+            document.getElementById('membersPanel').style.display = 'block';
+            document.getElementById('settingsPanel').style.display = 'none';
+            document.getElementById('leaderboard').style.display = 'none';
+        }
+        
+        function hideMembers() {
+            document.getElementById('membersPanel').style.display = 'none';
+        }
+        
+        function saveScore(score) {
+            const scores = JSON.parse(localStorage.getItem('aimLabScores3D') || '[]');
+            const level = levels.find(l => l.id === gameState.currentLevel);
+            scores.push({ 
+                score, 
+                level: level.name, 
+                levelId: gameState.currentLevel,
+                date: new Date().toLocaleDateString() 
+            });
+            scores.sort((a, b) => b.score - a.score);
+            scores.splice(10);
+            localStorage.setItem('aimLabScores3D', JSON.stringify(scores));
+        }
+        
+        function updateLeaderboard() {
+            const scores = JSON.parse(localStorage.getItem('aimLabScores3D') || '[]');
+            const content = document.getElementById('leaderboardContent');
+            if (!content) return;
+            content.innerHTML = '';
+            if (scores.length === 0) {
+                const noData = document.createElement('div');
+                noData.className = 'leaderboard-item';
+                noData.innerHTML = `
+                    <span style="color: #ccc; text-align: center; display: block; width: 100%;">
+                        Chưa có dữ liệu điểm số<br>
+                        <small style="font-size: 0.8em; color: #666;">
+                            Chơi game để tạo điểm số!
+                        </small>
+                    </span>
+                `;
+                content.appendChild(noData);
+                return;
+            }
+            scores.slice(0, 10).forEach((score, index) => {
+                const item = document.createElement('div');
+                item.className = 'leaderboard-item';
+                item.innerHTML = `
+                    <span class="rank">${index + 1}.</span>
+                    <span style="color: #fff;">${score.level}</span>
+                    <span class="score">${score.score} điểm</span>
+                `;
+                content.appendChild(item);
+            });
+        }
+        
+        // Input & crosshair
+        let mouseX = 0;
+        let mouseY = 0;
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
+        
+        function updateCrosshairPosition() {
+            const crosshair = document.getElementById('crosshair');
+            crosshair.style.left = (mouseX - 10) + 'px';
+            crosshair.style.top = (mouseY - 10) + 'px';
+        }
+        
+        function updateGunPosition() {
+            const gunHand = document.getElementById('gunHand');
+            const gunFrame = document.getElementById('gunHandFrame');
+            const centerX = window.innerWidth / 2;
+            const centerY = window.innerHeight / 2;
+            const deltaX = (mouseX - centerX) * 0.05;
+            const deltaY = (mouseY - centerY) * 0.05;
+            gunHand.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+            gunFrame.style.transform = `translate(${deltaX * 0.3}px, ${deltaY * 0.3}px)`;
+        }
+        
+        function showGunEffects() {
+            const gunHand = document.getElementById('gunHand');
+            const muzzleFlash = document.getElementById('muzzleFlash');
+            gunHand.classList.add('recoil');
+            setTimeout(() => { gunHand.classList.remove('recoil'); }, 100);
+            muzzleFlash.style.animation = 'none';
+            setTimeout(() => { muzzleFlash.style.animation = 'muzzleFlash 0.1s ease-out'; }, 10);
+        }
+        
+        document.addEventListener('click', (e) => {
+            if (!gameState.isPlaying) return;
+            const wrap = document.getElementById('rendererWrap');
+            const rect = wrap.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / rect.width * 2 - 1;
+            const y = - (e.clientY - rect.top) / rect.height * 2 + 1;
+            clickVector.set(x, y);
+            raycaster.setFromCamera(clickVector, camera);
+            const intersects = raycaster.intersectObjects(targets, true);
+            if (intersects.length > 0) {
+                processHit(intersects[0].object);
+            } else {
+                gameState.targetsMissed++;
+                gameState.currentStreak = 0;
+                updateUI();
+            }
+        });
+        
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                if (gameState.isPlaying) {
+                    backToMenu();
+                } else {
+                    if (confirm('Bạn có muốn thoát khỏi Aim Lab?')) {
+                        window.close();
+                    }
+                }
+            }
+            if (e.key.toLowerCase() === 'r' && gameState.isPlaying) {
+                restartGame();
+            }
+            if (e.key.toLowerCase() === 's') {
+                showSettings();
+            }
+        });
+        
+        document.getElementById('crosshairColor').addEventListener('change', (e) => {
+            gameState.settings.crosshairColor = e.target.value;
+            const crosshair = document.getElementById('crosshair');
+            const style = document.createElement('style');
+            style.textContent = `
+                .crosshair::before,
+                .crosshair::after {
+                    background: ${e.target.value} !important;
+                }
+            `;
+            document.head.appendChild(style);
+        });
+        
+        document.getElementById('targetSize').addEventListener('change', (e) => {
+            gameState.settings.targetSize = e.target.value;
+        });
+        
+        document.getElementById('gameDuration').addEventListener('change', (e) => {
+            gameState.settings.gameDuration = parseInt(e.target.value);
+        });
+        
+        // Hit Sound controls
+        document.getElementById('hitSoundVolume').addEventListener('input', (e) => {
+            const volume = parseInt(e.target.value);
+            setHitSoundVolume(volume);
+            document.getElementById('hitVolumeDisplay').textContent = volume + '%';
+            saveAudioSettings();
+        });
+        
+        function saveAudioSettings() {
+            localStorage.setItem('aimLabAudioSettings', JSON.stringify({
+                soundEffects: gameState.settings.soundEffects,
+                hitSoundVolume: gameState.settings.hitSoundVolume
+            }));
+        }
+        
+        function updateAudioControls() {
+            // Update UI controls to match loaded settings
+            const soundToggle = document.getElementById('soundEffects');
+            const volumeSlider = document.getElementById('hitSoundVolume');
+            const volumeDisplay = document.getElementById('hitVolumeDisplay');
+            
+            if (soundToggle) soundToggle.checked = gameState.settings.soundEffects;
+            if (volumeSlider) volumeSlider.value = gameState.settings.hitSoundVolume;
+            if (volumeDisplay) volumeDisplay.textContent = gameState.settings.hitSoundVolume + '%';
+        }
+        
+        // Hit Sound Management
+        let hitSound = null;
+        
+        function initAudio() {
+            hitSound = document.getElementById('hitSound');
+            if (hitSound) {
+                hitSound.volume = gameState.settings.hitSoundVolume / 100;
+            }
+        }
+        
+        function playHitSound() {
+            if (hitSound && gameState.settings.soundEffects) {
+                // Reset audio to beginning and play
+                hitSound.currentTime = 0;
+                hitSound.play().catch(e => {
+                    console.log('Hit sound play failed:', e);
+                });
+            }
+        }
+        
+        function setHitSoundVolume(volume) {
+            if (hitSound) {
+                hitSound.volume = volume / 100;
+                gameState.settings.hitSoundVolume = volume;
+            }
+        }
+        
+        // Load saved progress
+        function loadProgress() {
+            const saved = localStorage.getItem('aimLabProgress');
+            if (saved) {
+                const progress = JSON.parse(saved);
+                gameState.unlockedLevels = progress.unlockedLevels || [1];
+                gameState.completedLevels = progress.completedLevels || [];
+                gameState.currentLevel = progress.currentLevel || 1;
+            }
+            
+            // Load audio settings
+            const audioSettings = localStorage.getItem('aimLabAudioSettings');
+            if (audioSettings) {
+                const settings = JSON.parse(audioSettings);
+                gameState.settings.soundEffects = settings.soundEffects !== false;
+                gameState.settings.hitSoundVolume = settings.hitSoundVolume || 70;
+            }
+        }
+        
+        // Loading screen functionality
+        let loadingInterval = null;
+        let particleInterval = null;
+        let isSkipped = false;
+        
+        function skipLoading() {
+            if (isSkipped) return;
+            isSkipped = true;
+            
+            const loadingScreen = document.getElementById('loadingScreen');
+            const skipBtn = document.getElementById('skipLoadingBtn');
+            
+            // Clear all intervals
+            if (loadingInterval) clearInterval(loadingInterval);
+            if (particleInterval) clearInterval(particleInterval);
+            
+            // Hide skip button
+            skipBtn.classList.add('hidden');
+            
+            // Complete loading instantly
+            const progressBar = document.getElementById('loadingProgressBar');
+            const percentage = document.getElementById('loadingPercentage');
+            const status = document.getElementById('loadingStatus');
+            const tips = document.getElementById('loadingTips');
+            
+            progressBar.style.width = '100%';
+            percentage.textContent = '100%';
+            status.textContent = 'Skipping loading...';
+            tips.textContent = 'Game ready!';
+            
+            // Fade out loading screen
+            setTimeout(() => {
+                loadingScreen.classList.add('fade-out');
+                setTimeout(() => {
+                    loadingScreen.style.display = 'none';
+                    loadProgress();
+                    initLevelProgression();
+                    updateLeaderboard();
+                    initAudio();
+                    updateAudioControls();
+                }, 500);
+            }, 500);
+        }
+        
+        function initLoadingScreen() {
+            const loadingScreen = document.getElementById('loadingScreen');
+            const progressBar = document.getElementById('loadingProgressBar');
+            const percentage = document.getElementById('loadingPercentage');
+            const status = document.getElementById('loadingStatus');
+            const tips = document.getElementById('loadingTips');
+            const particles = document.getElementById('loadingParticles');
+            
+            const loadingSteps = [
+                { text: "Initializing game engine...", progress: 10 },
+                { text: "Loading 3D graphics...", progress: 25 },
+                { text: "Setting up physics engine...", progress: 40 },
+                { text: "Loading game assets...", progress: 60 },
+                { text: "Preparing level data...", progress: 75 },
+                { text: "Optimizing performance...", progress: 90 },
+                { text: "Almost ready...", progress: 100 }
+            ];
+            
+            const loadingTips = [
+                "Precision is the key to victory. Every shot counts.",
+                "Focus on accuracy over speed. Speed will come naturally.",
+                "Practice makes perfect. Consistency is everything.",
+                "Keep your crosshair at head level. Always be ready.",
+                "Don't panic. Stay calm and aim true.",
+                "Learn from every miss. Every shot teaches you something.",
+                "The best aimers are made, not born. Keep practicing."
+            ];
+            
+            let currentStep = 0;
+            let currentProgress = 0;
+            
+            // Create floating particles
+            function createParticle() {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 3 + 's';
+                particle.style.animationDuration = (Math.random() * 2 + 2) + 's';
+                particles.appendChild(particle);
+                
+                setTimeout(() => {
+                    if (particle.parentNode) {
+                        particle.parentNode.removeChild(particle);
+                    }
+                }, 5000);
+            }
+            
+            // Start particle generation
+            particleInterval = setInterval(createParticle, 200);
+            
+            function updateLoading() {
+                if (currentStep < loadingSteps.length) {
+                    const step = loadingSteps[currentStep];
+                    status.textContent = step.text;
+                    
+                    // Animate progress bar
+                    const targetProgress = step.progress;
+                    loadingInterval = setInterval(() => {
+                        if (currentProgress < targetProgress && !isSkipped) {
+                            currentProgress += 1;
+                            progressBar.style.width = currentProgress + '%';
+                            percentage.textContent = currentProgress + '%';
+                        } else {
+                            clearInterval(loadingInterval);
+                        }
+                    }, 20);
+                    
+                    // Update tip
+                    tips.textContent = loadingTips[currentStep % loadingTips.length];
+                    
+                    currentStep++;
+                    
+                    if (currentStep < loadingSteps.length && !isSkipped) {
+                        setTimeout(updateLoading, 800);
+                    } else if (!isSkipped) {
+                        // Loading complete
+                        setTimeout(() => {
+                            clearInterval(particleInterval);
+                            loadingScreen.classList.add('fade-out');
+                            setTimeout(() => {
+                                loadingScreen.style.display = 'none';
+                                loadProgress();
+                                initLevelProgression();
+                                updateLeaderboard();
+                                initAudio();
+                                updateAudioControls();
+                            }, 500);
+                        }, 1000);
+                    }
+                }
+            }
+            
+            // Start loading sequence
+            setTimeout(updateLoading, 500);
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            initLoadingScreen();
+        });
+        
+        // Expose functions to global scope for menu buttons
+        window.startLevel = startLevel;
+        window.showSettings = showSettings;
+        window.hideSettings = hideSettings;
+        window.showLeaderboard = showLeaderboard;
+        window.hideLeaderboard = hideLeaderboard;
+        window.showMembers = showMembers;
+        window.hideMembers = hideMembers;
+        window.restartGame = restartGame;
+        window.backToMenu = backToMenu;
+        window.skipLoading = skipLoading;
+    </script>
+    
+    <!-- Minimal fallback for OrbitControls import warning in non-module browsers -->
+    <script>
+        // No-op: we don't use OrbitControls in this build, module include kept for future
+    </script>
+</body>
+</html>
